@@ -104,7 +104,7 @@ const ENDINGS = {
   },
   lopsided: {
     cls: "lopsided", emoji: "😐", title: "일방적 합의",
-    text: "합의는 했지만 한쪽에 치우친 결과다. 서로의 사정을 충분히 알지 못해 불만이 남았고, 행사 내내 어색한 분위기가 이어질 것 같다.",
+    text: "합의는 했지만 한쪽에 치우친 결과다. 한쪽의 불만이 남아 행사 내내 어색한 분위기가 이어질 것 같다.",
   },
   fail: {
     cls: "fail", emoji: "💥", title: "협상 결렬",
@@ -128,7 +128,6 @@ function addMsg(kind, text) {
   body.textContent = text;
   div.appendChild(body);
   $("log").appendChild(div);
-  div.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 function addEffects(eff) {
@@ -167,6 +166,11 @@ function setChoices(list) {
   });
   const first = box.querySelector("button");
   if (first) first.focus({ preventScroll: true });
+  // 새 대화가 나오면 선택지까지 보이게 스크롤 (첫 화면은 맨 위 유지)
+  if (stageIndex > 0) {
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    box.scrollIntoView({ block: "end", behavior: calm ? "auto" : "smooth" });
+  }
 }
 
 function showStage(i) {
@@ -211,16 +215,16 @@ function finalNegotiation(c) {
       ending = "win";
       eff = { trust: +1, booth: +10 };
     } else {
-      lines.push(["other", "음… 지금까지 우리 사정을 잘 모르고 양보만 하셨잖아요. 그냥 제가 말한 대로 하죠."]);
-      lines.push(["narr", "서로의 필요를 확인하지 않아 대안이 힘을 얻지 못했다. 결국 상대의 요구대로 흘러갔다."]);
+      lines.push(["other", "좋은 생각이긴 한데… 아까 이유도 안 묻고 다 받아 주셨잖아요. 그냥 제가 말한 대로 하는 게 편하죠."]);
+      lines.push(["narr", "서로의 필요를 확인하지 않아 대안이 힘을 얻지 못했다. 결국 상대의 요구대로 흘러갔다. (부스팀만 양보한 합의)"]);
       ending = "lopsided";
       eff = { booth: -10 };
     }
   } else {
     lines = [["me", "교실은 저희가 계속 쓸게요. 연습은 다른 데서 하세요."]];
     if (state.trust >= 2) {
-      lines.push(["other", "…알겠어요. 그동안 신세도 졌고, 이번엔 양보할게요."]);
-      lines.push(["narr", "쌓아 둔 신뢰 덕에 요구가 받아들여졌다. 하지만 상대는 불만이 남았다."]);
+      lines.push(["other", "…알겠어요. 제 사정을 물어봐 주셨던 건 고마웠으니까, 이번엔 제가 양보할게요."]);
+      lines.push(["narr", "쌓아 둔 신뢰 덕에 요구가 받아들여졌다. 하지만 공연팀만 양보한 합의라 불만이 남았다. (신뢰도 -1)"]);
       ending = "lopsided";
       eff = { trust: -1 };
     } else {
@@ -264,7 +268,6 @@ function showEnding(key) {
 
   card.append(emoji, h, p, score, ul, lesson);
   $("log").appendChild(card);
-  card.scrollIntoView({ block: "nearest", behavior: "smooth" });
 
   setChoices([{ label: "🔄 다시 시작", primary: true, onClick: startGame }]);
 }
