@@ -6,7 +6,7 @@
 // t 마감 확인(+)/성급한 수락(-) 시간, w 윈윈 보너스, l 일방적 합의 손실, f 결렬 손실 (단위: 분)
 const SCENARIOS = [
   {
-    id: "room", emoji: "🏫", title: "① 교실 사용 시간 협상", sub: "부스 운영팀 vs 공연 준비팀",
+    id: "room", short: "교실 사용", emoji: "🏫", title: "① 교실 사용 시간 협상", sub: "부스 운영팀 vs 공연 준비팀",
     res: "부스 준비 시간", meName: "나 (부스팀)", otherName: "공연팀",
     n: { S: 90, g: 30, h: 60, t: 10, w: 10, l: 10, f: 20 },
     intro: [
@@ -66,7 +66,7 @@ const SCENARIOS = [
     lesson: "입장(\"1시간 비워주세요\") 뒤에 숨은 진짜 필요를 묻고, 마감이 정말 급한지 확인한 뒤, 서로 이익이 되는 대안을 내보자.",
   },
   {
-    id: "audio", emoji: "🎤", title: "② 방송 장비 사용 시간 협상", sub: "영상 상영팀 vs 사회·진행팀",
+    id: "audio", short: "방송 장비", emoji: "🎤", title: "② 방송 장비 사용 시간 협상", sub: "영상 상영팀 vs 사회·진행팀",
     res: "영상 리허설 시간", meName: "나 (영상팀)", otherName: "진행팀",
     n: { S: 60, g: 15, h: 40, t: 5, w: 5, l: 5, f: 10 },
     intro: [
@@ -126,7 +126,7 @@ const SCENARIOS = [
     lesson: "\"40분 빌려 주세요\"라는 요구 뒤에는 \"음량 확인\"이라는 진짜 목적이 있었다. 목적을 묻고, 예약 마감을 확인한 뒤, 서로 돕는 대안을 내보자.",
   },
   {
-    id: "crew", emoji: "🙋", title: "③ 행사 준비 인력 협상", sub: "장식팀 vs 안내·접수팀",
+    id: "crew", short: "준비 인력", emoji: "🙋", title: "③ 행사 준비 인력 협상", sub: "장식팀 vs 안내·접수팀",
     res: "장식 준비 시간", meName: "나 (장식팀)", otherName: "안내팀",
     n: { S: 120, g: 40, h: 80, t: 10, w: 10, l: 10, f: 20 },
     intro: [
@@ -207,6 +207,43 @@ const ENDINGS = {
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// 처음 화면으로 돌아가면 epoch 가 바뀌어, 진행 중이던 응답 연출이 새 화면에 끼어들지 않고 멈춘다.
+let epoch = 0;
+const CANCELLED = Symbol("cancelled");
+async function wait(ms) {
+  const e = epoch;
+  await sleep(ms);
+  if (e !== epoch) throw CANCELLED;
+}
+
+// 결말 수집 기록: 이 기기의 localStorage 에만 저장한다. 막힌 브라우저에서는 이번 접속 동안만 메모리에 유지한다.
+const STORE_KEY = "negotiation-choice.v1";
+const ENDING_KEYS = ["win", "lopsided", "fail"];
+const store = {
+  mem: { endings: {}, howtoSeen: false },
+  persistent: true,
+  load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (d && typeof d === "object") this.mem = { endings: d.endings && typeof d.endings === "object" ? d.endings : {}, howtoSeen: !!d.howtoSeen };
+    } catch (err) { /* 저장소를 못 읽으면 메모리 값을 쓴다 */ }
+    return this.mem;
+  },
+  save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(this.mem)); this.persistent = true; }
+    catch (err) { this.persistent = false; }
+  },
+  got(id, key) { return Array.isArray(this.mem.endings[id]) && this.mem.endings[id].includes(key); },
+  add(id, key) {
+    const list = Array.isArray(this.mem.endings[id]) ? this.mem.endings[id] : [];
+    if (!list.includes(key)) list.push(key);
+    this.mem.endings[id] = list;
+    this.save();
+  },
+  clearEndings() { this.mem.endings = {}; this.save(); },
+  count() { return SCENARIOS.reduce((n, d) => n + ENDING_KEYS.filter((k) => this.got(d.id, k)).length, 0); },
+};
+store.load();
 const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const val = (x) => (typeof x === "function" ? x(state) : x);
 
@@ -329,10 +366,10 @@ async function speak(kind, text) {
   if (kind === "other") {
     m = addMsg("other", "…");
     follow(m.div);
-    await sleep(delay);
+    await wait(delay);
     m.body.textContent = text;
   } else {
-    await sleep(delay / 2);
+    await wait(delay / 2);
     m = addMsg(kind, text);
   }
   follow(m.div);
@@ -374,6 +411,7 @@ function applyEffects(eff, set) {
 
 function setStage(i) {
   stageIndex = i;
+  $("homeBtn").hidden = i < 0;
   $("stageName").textContent = i < 0 ? "시나리오 선택" : STAGE_NAMES[i];
   $("bar").style.width = (Math.max(i, 0) / STAGE_NAMES.length) * 100 + "%";
 }
@@ -417,12 +455,13 @@ function reveal() {
   if (!firstNew) return;
   const behavior = calm() ? "auto" : "smooth";
   const box = $("choices");
+  const sticky = $("stageName").parentElement.offsetHeight; // 상단에 고정된 단계 줄
   const top = firstNew.getBoundingClientRect().top;
   const needed = box.getBoundingClientRect().bottom - top + 16;
-  if (needed <= window.innerHeight) {
+  if (needed <= window.innerHeight - sticky) {
     box.scrollIntoView({ block: "end", behavior });
   } else {
-    window.scrollTo({ top: window.scrollY + top - 12, behavior });
+    window.scrollTo({ top: window.scrollY + top - (sticky + 8), behavior });
   }
 }
 
@@ -452,18 +491,23 @@ async function pick(c) {
   markBatch();
   state.history.push(c.summary);
   follow(addMsg("me", say).div);
-  for (const [k, t] of reply) await speak(k, t);
-  applyEffects(eff, c.set);
-  if (eff) addEffects(eff);
+  try {
+    for (const [k, t] of reply) await speak(k, t);
+    applyEffects(eff, c.set);
+    if (eff) addEffects(eff);
 
-  if (ending) {
-    setChoices([{ label: "결과 보기 ▶", primary: true, onClick: () => showEnding(ending) }]);
-  } else if (c.next) {
-    await sleep(calm() ? 0 : 250);
-    await enterNode(c.next);
-  } else {
-    await sleep(calm() ? 0 : 250);
-    await enterStage(stageIndex + 1);
+    if (ending) {
+      setChoices([{ label: "결과 보기 ▶", primary: true, onClick: () => showEnding(ending) }]);
+    } else if (c.next) {
+      await wait(calm() ? 0 : 250);
+      await enterNode(c.next);
+    } else {
+      await wait(calm() ? 0 : 250);
+      await enterStage(stageIndex + 1);
+    }
+  } catch (err) {
+    if (err !== CANCELLED) { busy = false; throw err; }
+    return; // 처음 화면으로 돌아간 경우: 새 화면의 상태는 건드리지 않는다
   }
   busy = false;
 }
@@ -473,6 +517,7 @@ function showEnding(key) {
   setStage(4);
   $("resLabel").textContent = scenario.res; // 합의가 끝났으니 더 이상 예상값이 아니다
   const e = ENDINGS[key];
+  store.add(scenario.id, key);
 
   const card = document.createElement("div");
   card.className = "result " + e.cls;
@@ -517,26 +562,107 @@ function chooseScenario(d) {
       busy = true;
       clearChoices();
       markBatch();
-      await enterStage(1);
+      try {
+        await enterStage(1);
+      } catch (err) {
+        if (err !== CANCELLED) { busy = false; throw err; }
+        return;
+      }
       busy = false;
     },
   }]);
   window.scrollTo({ top: 0 });
 }
 
+// ───────── 시나리오 선택 화면: 게임 방법 / 결말 수집 현황 ─────────
+function buildHowTo() {
+  const box = document.createElement("details");
+  box.className = "howto";
+  box.open = !store.mem.howtoSeen; // 처음 접속했을 때만 펼쳐 둔다
+  const sum = document.createElement("summary");
+  sum.textContent = "📖 게임 방법";
+  const ul = document.createElement("ul");
+  [
+    "🎯 『협상의 기술』을 바탕으로 한 선택형 게임이에요. 시나리오를 고르고, 내가 할 말을 직접 눌러 협상해요. (정보 → 시간 → 합의)",
+    "🤝 신뢰도: 질문하고 협조하면 오르고, 일방적으로 밀어붙이면 내려가요.",
+    "⏱ 준비 시간: 우리 팀이 쓸 수 있을 것 같은 예상 시간이에요. 합의가 끝나야 최종값이 돼요.",
+    "🏁 선택에 따라 윈윈 합의 / 일방적 합의 / 협상 결렬로 결말이 달라져요. 시간이 많아도 신뢰를 잃으면 좋은 결말이 아니에요.",
+  ].forEach((t) => {
+    const li = document.createElement("li");
+    li.textContent = t;
+    ul.appendChild(li);
+  });
+  box.append(sum, ul);
+  if (!store.mem.howtoSeen) { store.mem.howtoSeen = true; store.save(); }
+  return box;
+}
+
+function renderCollection(card) {
+  card.replaceChildren(); // details 요소는 그대로라 펼침 상태가 유지된다
+  const sum = document.createElement("summary");
+  sum.textContent = `🏅 결말 수집 ${store.count()}/${SCENARIOS.length * ENDING_KEYS.length}`;
+  card.appendChild(sum);
+
+  SCENARIOS.forEach((d) => {
+    const row = document.createElement("div");
+    row.className = "collect-row";
+    const name = document.createElement("span");
+    name.className = "collect-name";
+    name.textContent = `${d.emoji} ${d.short}`;
+    row.appendChild(name);
+    ENDING_KEYS.forEach((k) => {
+      const got = store.got(d.id, k);
+      const b = document.createElement("span");
+      b.className = "badge" + (got ? " got " + k : "");
+      b.textContent = (got ? ENDINGS[k].emoji + " " : "· ") + ENDINGS[k].title.replace(" 합의", "").replace("협상 ", "");
+      b.setAttribute("aria-label", `${d.short} ${ENDINGS[k].title} ${got ? "달성" : "미달성"}`);
+      row.appendChild(b);
+    });
+    card.appendChild(row);
+  });
+
+  if (!store.persistent) {
+    const note = document.createElement("p");
+    note.className = "collect-note";
+    note.textContent = "이 브라우저에서는 저장이 막혀 있어 이번 접속 동안만 기록돼요.";
+    card.appendChild(note);
+  }
+
+  const reset = document.createElement("button");
+  reset.type = "button";
+  reset.className = "ghost";
+  reset.textContent = "기록 초기화";
+  reset.addEventListener("click", () => {
+    if (!window.confirm("결말 수집 기록을 모두 지울까요?\n지우면 되돌릴 수 없어요.")) return;
+    store.clearEndings();
+    renderCollection(card);
+  });
+  card.appendChild(reset);
+}
+
+// 처음 화면(시나리오 선택)으로. 진행 중이던 응답 연출은 epoch 로 취소한다.
 function startGame() {
+  epoch++;
   resetState();
   updateChips();
   $("log").replaceChildren();
   setStage(-1);
-  const div = document.createElement("div");
-  div.className = "msg narr";
-  div.textContent = "『협상의 기술』을 바탕으로 한 선택형 협상 게임이에요. 협상 상황을 하나 골라 시작하세요.";
-  $("log").appendChild(div);
+  const card = document.createElement("details");
+  card.className = "collect";
+  renderCollection(card);
+  $("log").append(buildHowTo(), card);
   setChoices(SCENARIOS.map((d) => ({
     label: `${d.emoji} ${d.title}`, sub: d.sub, onClick: () => chooseScenario(d),
   })));
   window.scrollTo({ top: 0 });
 }
+
+// 진행 중에 처음 화면으로. 고른 선택이 있는 진행 중일 때만 확인창을 띄운다.
+function goHome() {
+  const inProgress = scenario && stageIndex >= 0 && stageIndex < 4 && state.history.length > 0;
+  if (inProgress && !window.confirm("진행 중인 협상이 초기화돼요.\n처음 화면으로 돌아갈까요?")) return;
+  startGame();
+}
+$("homeBtn").addEventListener("click", goHome);
 
 startGame();
