@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>협상의 선택</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game">
+    <header class="top">
+      <h1>협상의 선택</h1>
+      <div class="status" id="status" aria-label="현재 점수">
+        <span class="chip">🤝 신뢰도 <strong id="trust">0</strong></span>
+        <span class="chip">⏱ 부스 준비 <strong id="booth">90</strong>분</span>
+      </div>
+      <div class="progress" aria-hidden="true"><div class="bar" id="bar"></div></div>
+      <p class="stage-name" id="stageName"></p>
+    </header>
+
+    <section class="log" id="log" aria-live="polite"></section>
+
+    <section class="choices" id="choices"></section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

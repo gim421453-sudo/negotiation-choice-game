@@ -1,0 +1,107 @@
+:root {
+  --bg: #f4f6fb;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --primary: #2f6fed;
+  --good: #16a34a;
+  --bad: #dc2626;
+  --me: #dbeafe;
+  --other: #fef3c7;
+  --narr: #eef0f4;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  line-height: 1.6;
+  font-size: 17px;
+}
+
+.game {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+}
+
+.top h1 { margin: 8px 0 12px; font-size: 1.6rem; text-align: center; }
+
+.status { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.chip {
+  background: var(--card);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 0.95rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
+}
+
+.progress { height: 6px; background: #dfe4ee; border-radius: 3px; margin: 14px 0 6px; overflow: hidden; }
+.bar { height: 100%; width: 0; background: var(--primary); transition: width .3s; }
+.stage-name { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; text-align: center; }
+
+.log { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; }
+
+.msg {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  animation: pop .25s ease-out;
+}
+.msg .who { display: block; font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+.msg.narr { align-self: stretch; max-width: 100%; background: var(--narr); border-radius: 10px; font-size: 0.95rem; }
+.msg.other { align-self: flex-start; background: var(--other); border-top-left-radius: 4px; }
+.msg.me { align-self: flex-end; background: var(--me); border-top-right-radius: 4px; }
+
+.effects { display: flex; gap: 6px; flex-wrap: wrap; align-self: stretch; }
+.fx { font-size: 0.9rem; font-weight: 700; padding: 2px 10px; border-radius: 8px; background: var(--card); }
+.fx.good { color: var(--good); }
+.fx.bad { color: var(--bad); }
+
+.choices { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 14px 16px;
+  min-height: 52px;
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+}
+button:hover, button:focus-visible { background: #eaf1ff; outline: none; }
+button.primary { background: var(--primary); color: #fff; text-align: center; font-weight: 700; }
+button.primary:hover, button.primary:focus-visible { background: #1f56c4; }
+
+.result {
+  align-self: stretch;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+}
+.result .emoji { font-size: 2.6rem; }
+.result h2 { margin: 4px 0 8px; }
+.result.win h2 { color: var(--good); }
+.result.lopsided h2 { color: #d97706; }
+.result.fail h2 { color: var(--bad); }
+.result ul { text-align: left; padding-left: 20px; color: var(--muted); font-size: 0.95rem; }
+.result .lesson { background: var(--narr); border-radius: 10px; padding: 10px 12px; text-align: left; font-size: 0.95rem; }
+
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .msg { animation: none; }
+  .bar { transition: none; }
+}
+
+@media (min-width: 768px) {
+  body { font-size: 19px; }
+  .game { padding-top: 28px; }
+}
