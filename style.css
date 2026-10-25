@@ -132,7 +132,7 @@ button.primary:hover, button.primary:focus-visible { background: #1f56c4; }
 .satisfaction-line { display: grid; grid-template-columns: 60px minmax(0, 1fr) 40px; align-items: center; gap: 8px; margin: 8px 0; font-size: 0.9em; }
 .satisfaction-track { height: 12px; background: #d8dce6; border-radius: 99px; overflow: hidden; }
 .satisfaction-fill { height: 100%; background: var(--primary); border-radius: 99px; }
-.satisfaction-note { color: var(--muted); font-size: 0.75em; margin: 10px 0 0; }
+.satisfaction-note { color: var(--muted); font-size: 0.85em; margin: 10px 0 0; }
 .outcome-explanation { background: #f8fafc; padding: 12px; border-radius: 12px; margin: 12px 0; text-align: left; }
 .outcome-explanation h3 { font-size: 1em; margin: 0 0 8px; }
 .outcome-explanation p { margin: 0; font-size: 0.9em; line-height: 1.7; }
