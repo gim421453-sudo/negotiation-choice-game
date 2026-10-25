@@ -82,6 +82,7 @@ button {
   background: var(--card);
   color: var(--text);
 }
+button .sub { display: block; font-size: 0.9em; color: var(--muted); margin-top: 2px; }
 button:hover, button:focus-visible { background: #eaf1ff; outline: none; }
 button.primary { background: var(--primary); color: #fff; text-align: center; font-weight: 700; }
 button.primary:hover, button.primary:focus-visible { background: #1f56c4; }
