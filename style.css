@@ -34,7 +34,11 @@ body {
   padding-bottom: max(48px, env(safe-area-inset-bottom));
 }
 
-.top h1 { margin: 8px 0 12px; font-size: 1.6rem; text-align: center; }
+.top-actions { display: flex; justify-content: flex-end; }
+/* 사용설명서 PDF 다운로드 링크: 버튼과 같은 터치 크기(44px 이상) */
+.ghost-link { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 12px; font-size: 0.9rem; border: 1px solid #b8c4e0; border-radius: 12px; background: var(--card); color: var(--muted); text-decoration: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.ghost-link:hover, .ghost-link:focus-visible { background: #eaf1ff; outline: none; }
+.top h1 { margin: 0 0 12px; font-size: 1.6rem; text-align: center; }
 
 .status { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .chip {
